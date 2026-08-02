@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipeline Study Agent Chat Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-1.3l-.85-.6C8.77 13.13 8 11.5 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-1.77 4.13-3.15 5.1z"/>
+                    </svg>
+                </div>
+                <div class="logo-title">Pipeline Orchestrator</div>
+            </div>
+            <button class="new-thread-btn" onclick="startNewThread()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                New Thread
+            </button>
+        </div>
+        
+        <div class="sidebar-scroll">
+            <div class="section-title">Session Configuration</div>
+            <div class="thread-info-card">
+                <div class="info-row">
+                    <span class="info-label">Thread ID</span>
+                    <span class="info-value" id="thread-id-display">Generating...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status</span>
+                    <div class="connection-status">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span id="status-text">Connected</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section-title">Agent Nodes</div>
+            <div class="thread-info-card" style="font-size: 13px; color: var(--text-muted);">
+                <div class="agent-item">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary); flex-shrink: 0;"></span>
+                    <strong>Orchestrator</strong>
+                    <span class="running-indicator" id="badge-Orchestrator" style="display: none;">
+                        <span class="spinner" style="width: 10px; height: 10px; border-width: 1px;"></span> running
+                    </span>
+                </div>
+                <div class="agent-item">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--info); flex-shrink: 0;"></span>
+                    <strong>Notes_Agent</strong>
+                    <span class="running-indicator notes" id="badge-Notes_Agent" style="display: none;">
+                        <span class="spinner" style="width: 10px; height: 10px; border-width: 1px;"></span> running
+                    </span>
+                </div>
+                <div class="agent-item">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #a855f7; flex-shrink: 0;"></span>
+                    <strong>Question_Maker_Agent</strong>
+                    <span class="running-indicator questions" id="badge-Question_Maker_Agent" style="display: none;">
+                        <span class="spinner" style="width: 10px; height: 10px; border-width: 1px;"></span> running
+                    </span>
+                </div>
+                <div class="agent-item">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--warning); flex-shrink: 0;"></span>
+                    <strong>Explainer_Agent</strong>
+                    <span class="running-indicator explainer" id="badge-Explainer_Agent" style="display: none;">
+                        <span class="spinner" style="width: 10px; height: 10px; border-width: 1px;"></span> running
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="chat-header">
+            <div class="active-session-title">Conversation Workspace</div>
+        </div>
+        
+        <div class="chat-container" id="chat-container">
+        </div>
+        
+        <div class="input-panel">
+            <div class="input-container">
+                <textarea class="chat-textarea" id="chat-input" placeholder="Type a message..." oninput="autoGrow(this)" onkeydown="handleKeyPress(event)"></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+                    <svg viewBox="0 0 24 24" id="send-icon">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2.0.2" defer></script>
+</body>
+</html>
