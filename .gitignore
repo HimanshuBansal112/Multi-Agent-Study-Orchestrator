@@ -8,6 +8,7 @@ wheels/
 
 #uv Generated files
 uv.lock
+.python-version
 
 # Virtual environments
 .venv
