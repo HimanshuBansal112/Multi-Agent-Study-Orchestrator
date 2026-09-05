@@ -26,7 +26,7 @@ A multi-agent study orchestration platform built with LangGraph, FastAPI, and a 
 
 ## Technology Stack
 
-- **Backend:** Python, FastAPI, LangGraph, Uvicorn
+- **Backend:** Python, FastAPI, FastMCP, LangGraph, Custom RAG, Uvicorn
 - **Frontend:** HTML, CSS, JavaScript
 
 ---
