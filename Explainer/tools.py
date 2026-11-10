@@ -123,5 +123,4 @@ def Search_material(question: str):
 
 
 if __name__ == "__main__":
-    os.makedirs("pdf", exist_ok=True)
     mcp.run(transport="sse", host="127.0.0.1", port=8002)
