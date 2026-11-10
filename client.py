@@ -12,9 +12,9 @@ import instructor
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_core.callbacks import AsyncCallbackHandler
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.mcp import MCPAdapter
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
@@ -50,7 +50,7 @@ explainer_agent_prompt = """
 1. To answer a study question, follow this workflow:
    Load_embedding -> Search_material -> Answer.
 2. Never answer from your own knowledge if study material is required.
-3. If notes are unavailable or embeddings cannot be loaded, stop immediately and apologize that the study material is unavailable.
+3. If notes are unavailable or embeddings cannot be loaded, stop immediately and apologize with the reason.
 """
 
 notes_agent_prompt = """
@@ -99,21 +99,73 @@ class SubAgent:
         self.history = []
         self.MCP_name = MCP_name
         self.MCP_port = MCP_port
+    
+    def preprocess_gemini_history(
+        self, history: list[BaseMessage], query: str, max_context: int
+    ) -> list[BaseMessage]:
+        cleaned_chat: list[BaseMessage] = []
+
+        for msg in history:
+            if isinstance(msg, ToolMessage):
+                continue
+
+            if isinstance(msg, AIMessage):
+                content = msg.content
+                if isinstance(content, list):
+                    chat_parts = []
+                    for item in content:
+                        if isinstance(item, dict):
+                            if item.get("type") == "thinking":
+                                continue
+                            chat_parts.append(item.get("text", "") or item.get("content", ""))
+                        elif isinstance(item, str):
+                            chat_parts.append(item)
+                    content = " ".join(part for part in chat_parts if part).strip()
+
+                if not content:
+                    continue
+                cleaned_chat.append(AIMessage(content=str(content)))
+
+            elif isinstance(msg, HumanMessage):
+                cleaned_chat.append(msg)
+
+        cleaned_chat.append(HumanMessage(content="[AI] " + query))
+
+        merged_tool_split: list[BaseMessage] = []
+        for msg in cleaned_chat:
+            if merged_tool_split and type(merged_tool_split[-1]) is type(msg):
+                merged_tool_split[-1] = type(msg)(
+                    content=f"{merged_tool_split[-1].content}\n\n{msg.content}"
+                )
+            else:
+                merged_tool_split.append(msg)
+
+        if max_context and len(merged_tool_split) > max_context * 2:
+            trimmed_chat = merged_tool_split[-(max_context * 2) :]
+        else:
+            trimmed_chat = merged_tool_split
+        
+        while trimmed_chat and not isinstance(trimmed_chat[0], HumanMessage):
+            trimmed_chat.pop(0)
+
+        return trimmed_chat
 
     async def create(self):
-        self.client = MultiServerMCPClient(
+        self.client = MCPAdapter(
             {
-                self.MCP_name: {
-                    "transport": "sse",
-                    "url": f"http://127.0.0.1:{self.MCP_port}/sse",
+                "mcpServers": {
+                    self.MCP_name: {
+                        "type": "sse",
+                        "url": f"http://127.0.0.1:{self.MCP_port}/sse",
+                    }
                 }
             }
         )
-        tools = await self.client.get_tools()
+        tools = await self.client.list_tools()
         api_key = os.getenv("GOOGLE_API_KEY")
 
         self.llm = ChatGoogleGenerativeAI(
-            model="gemma-4-31b-it",
+            model="gemini-3.5-flash-lite",
             temperature=0,
             max_tokens=16384 * 8,
             timeout=None,
@@ -160,7 +212,7 @@ class SubAgent:
         self, query, history: list[BaseMessage], callbacks=None, max_context: int = 5
     ):
         query = "[AI] " + query
-        working_history = list(history) + [HumanMessage(content=query)]
+        working_history = self.preprocess_gemini_history(history, query, max_context)
         response = await self.agent.ainvoke(
             {"messages": working_history}, config={"callbacks": callbacks}
         )
@@ -169,7 +221,7 @@ class SubAgent:
         if not text:
             text = "Error: Agent returned an empty or invalid response."
 
-        updated_history = response["messages"]
+        updated_history = working_history + [AIMessage(content=text)]
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(f"agent_{self.name}.log", "a", encoding="utf-8") as file:
             file.write(f"[{current_time}] {response}\n")
@@ -461,25 +513,30 @@ Sub-agents have limited working memory.
 - Whenever important information from an earlier interaction is required, include it explicitly in your instruction instead of relying on the sub-agent's memory.
 
 ========================
-AGENT RESPONSIBILITIES
+SUB-AGENT RESPONSIBILITIES (Will help you decide what to do)
 ========================
 
 Notes_Agent
 - Create study notes.
-- Retrieve study notes.
-- Summarize study material.
+- Has access to some PDFs which orchestrator may not have.
+- Retrieve study material(PDFs) to prepare notes.
+- Summarize study material for creating notes only.
+- If it says it has no pdf, ask user to add to its database.
+- Should get routed to this for making notes.
 
 Question_Maker_Agent
 - Generate quizzes.
 - Create MCQs.
 - Prepare practice questions.
+- Should get routed to this for making questions/quiz.
+- Has access to current and past session questions.
 
 Explainer_Agent
-- Explain concepts.
-- Answer study-related doubts.
-- Clarify study material.
-- Requires study notes as input.
-- Has notes for itself.
+- Has access to study material.
+- Explains concept.
+- Answers study-related doubt.
+- Has access to notes always.
+- Should get routed to this for explanation of any study topic.
 
 ========================
 OUTPUT RULES
@@ -495,7 +552,8 @@ Rules:
 - If `next_action` is `FINAL_RESPONSE`, `response_content` must contain only your direct response to the user.
 - Never fabricate study content.
 - Never modify study content returned by a sub-agent.
-- Your role is to coordinate agents, preserve context, and assemble the final response.
+- Your role is to coordinate agents(based on what they can do), preserve context, and assemble the final response.
+- Only try to solve yourself if sub agents are not made for it. Mostly, you have to route based on sub-agent responsibilities.
 """
 
     formatted_messages = [{"role": "system", "content": system_prompt}]
@@ -520,7 +578,7 @@ Rules:
 
     evaluation = await asyncio.to_thread(
         structured_manager.chat.completions.create,
-        model="deepseek/deepseek-v4-flash-0731",
+        model="deepseek/deepseek-v4.1-flash-1017",
         response_model=RoutingDirective,
         messages=formatted_messages,
         max_tokens=16384 * 4,
@@ -791,13 +849,7 @@ async def chat_endpoint(request: QueryRequest):
                                 if state.get("current_worker") == "FINISH":
                                     msg_text = get_message_text(latest_msg.content)
                                     print(f"\nOrchestrator -> You: {msg_text}")
-                                    yield f"\nOrchestrator -> You: "
-                                    words = re.split(r"(\s+)", msg_text)
-                                    for word in words:
-                                        if word:
-                                            yield word
-                                            await asyncio.sleep(0.01)
-                                    yield "\n"
+                                    yield f"\nOrchestrator -> You: {msg_text}\n"
                                 else:
                                     target = state.get("current_worker", "Worker")
                                     msg_text = get_message_text(latest_msg.content)
@@ -927,14 +979,7 @@ async def retry_endpoint(thread_id: str, idx: int, continue_chat: bool = True):
                             if state.get("current_worker") == "FINISH":
                                 msg_text = get_message_text(latest_msg.content)
                                 print(f"\nOrchestrator -> You: {msg_text}")
-                                yield "\nOrchestrator -> You: "
-                                words = re.split(r"(\s+)", msg_text)
-
-                                for word in words:
-                                    if word:
-                                        yield word
-                                        await asyncio.sleep(0.01)
-                                yield "\n"
+                                yield f"\nOrchestrator -> You: {msg_text}\n"
 
                             else:
                                 target = state.get("current_worker", "Worker")

@@ -349,16 +349,24 @@ async function sendMessage() {
         const decoder = new TextDecoder('utf-8');
         let accumulatedText = '';
 
+        let renderPending = false;
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-
             const chunk = decoder.decode(value, { stream: true });
             accumulatedText += chunk;
-
-            activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (!renderPending) {
+                renderPending = true;
+                requestAnimationFrame(() => {
+                    activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    renderPending = false;
+                });
+            }
         }
+        
+        activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     } catch(err) {
         if (err.name !== 'AbortError') {
             activeStreamDiv.insertAdjacentHTML('beforeend', `
@@ -546,16 +554,24 @@ async function triggerRetry(btn) {
         const decoder = new TextDecoder('utf-8');
         let accumulatedText = '';
         
+        let renderPending = false;
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
             const chunk = decoder.decode(value, { stream: true });
             accumulatedText += chunk;
-            
-            activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            if (!renderPending) {
+                renderPending = true;
+                requestAnimationFrame(() => {
+                    activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    renderPending = false;
+                });
+            }
         }
+        
+        activeStreamDiv.innerHTML = renderParsedStream(accumulatedText);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     } catch(err) {
         if (err.name !== 'AbortError') {
             activeStreamDiv.insertAdjacentHTML('beforeend', `

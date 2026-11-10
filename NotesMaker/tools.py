@@ -8,11 +8,11 @@ from datetime import datetime
 from functools import wraps
 from pathlib import Path
 
-import fitz
+import pymupdf
 from bs4 import BeautifulSoup, NavigableString
 from fastmcp.utilities.logging import get_logger
 from fastmcp.utilities.types import Image
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import MCPServer, Context
 from mcp.types import CallToolResult, ImageContent, TextContent
 from pypdf import PdfReader, PdfWriter
 
@@ -22,7 +22,7 @@ notes_path = os.path.join(path, "notes.html")
 pdf_path = os.path.join(path, "pdf")
 time_track_path = os.path.join(path, "time_track.json")
 
-mcp = FastMCP(name="Study_Materials_and_Notes", host="127.0.0.1", port=8000)
+mcp = MCPServer(name="Study_Materials_and_Notes")
 
 tool_logger = logging.getLogger("mcp_tools")
 tool_logger.setLevel(logging.INFO)
@@ -89,16 +89,14 @@ def remove_whitespace_nodes(node):
 
 def pdf_to_img(file_path, dpi, max_size_kb=800, reduce_factor=0.9):
     output = []
-    with fitz.open(file_path) as doc:
+    with pymupdf.open(file_path) as doc:
         num_pages = len(doc)
         current_dpi = dpi
         while True:
             total_size_bytes = 0
             temp_output = []
-            zoom = current_dpi / 72
-            matrix = fitz.Matrix(zoom, zoom)
             for page in doc:
-                pix = page.get_pixmap(matrix=matrix)
+                pix = page.get_pixmap(dpi=current_dpi)
                 img_bytes = pix.tobytes("png")
                 img_base64 = base64.b64encode(img_bytes).decode("utf-8")
                 size_bytes = len(img_base64.encode("utf-8"))
@@ -381,4 +379,4 @@ if __name__ == "__main__":
         with open(notes_path, "w") as file:
             file.write(format_html)
         time_notes_set()
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host="127.0.0.1", port=8000)

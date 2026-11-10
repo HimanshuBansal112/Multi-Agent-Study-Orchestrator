@@ -212,7 +212,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth; */
 }
 
 .message-row {
@@ -605,4 +605,11 @@ body {
     background: rgba(245, 158, 11, 0.1);
     border-color: rgba(245, 158, 11, 0.25);
     color: var(--warning);
+}
+
+[id^="active-stream-"] .message-row,
+[id^="active-stream-"] .directive-row,
+[id^="active-stream-"] .system-badge-row,
+[id^="active-stream-"] .thinking-dropdown {
+    animation: none !important;
 }

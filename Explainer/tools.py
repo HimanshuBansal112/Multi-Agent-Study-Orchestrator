@@ -10,7 +10,7 @@ from pathlib import Path
 from fastmcp.utilities.logging import get_logger
 from fastmcp.utilities.types import Image
 from html_rag import compare, embedding
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import MCPServer, Context
 
 path = str((Path(__file__).parent / "..").resolve())
 path = os.path.join(path, "DataBase")
@@ -19,7 +19,7 @@ notes_path = os.path.join(path, "notes.html")
 time_track_path = os.path.join(path, "time_track.json")
 embedding_path = os.path.join(path, "embedding.pkl")
 
-mcp = FastMCP(name="Explainer_And_Doubts_Solver", host="127.0.0.1", port=8002)
+mcp = MCPServer(name="Explainer_And_Doubts_Solver")
 
 tool_logger = logging.getLogger("mcp_tools")
 tool_logger.setLevel(logging.INFO)
@@ -124,4 +124,4 @@ def Search_material(question: str):
 
 if __name__ == "__main__":
     os.makedirs("pdf", exist_ok=True)
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host="127.0.0.1", port=8002)

@@ -6,15 +6,18 @@ from pathlib import Path
 import numpy as np
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from google import genai
+from openai import OpenAI
 from markdownify import markdownify
 
 path = str((Path(__file__).parent / "..").resolve())
 path = os.path.join(path, "DataBase")
 load_dotenv(os.path.join(path, ".env"))
 
-api_key = os.getenv("GOOGLE_API_KEY")
-client = genai.Client(api_key=api_key)
+api_key = os.getenv("OPENROUTER_API_KEY")
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=api_key,
+)
 
 
 class ScientificHTMLExtractor:
@@ -111,10 +114,8 @@ def embedding(notes_path):
 
         while attempt <= max_attempts and not success:
             try:
-                response = client.models.embed_content(
-                    model="gemini-embedding-2", contents=chunk["text"]
-                )
-                chunk["embedding"] = response.embeddings[0].values
+                response = client.embeddings.create(model="openai/text-embedding-3-small", input=chunk["text"])
+                chunk["embedding"] = response.data[0].embedding
                 success = True
 
             except Exception as e:
@@ -134,11 +135,11 @@ def embedding(notes_path):
 
 
 def compare(chunks, query, k):
-    query_embedding = (
-        client.models.embed_content(model="gemini-embedding-2", contents=query)
-        .embeddings[0]
-        .values
+    response = client.embeddings.create(
+        model="openai/text-embedding-3-small",
+        input=query,
     )
+    query_embedding = response.data[0].embedding
 
     scores = []
 

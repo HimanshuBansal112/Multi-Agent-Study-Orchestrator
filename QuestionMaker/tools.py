@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastmcp.utilities.logging import get_logger
 from fastmcp.utilities.types import Image
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.mcpserver import MCPServer, Context
 
 path = str((Path(__file__).parent / "..").resolve())
 path = os.path.join(path, "DataBase")
@@ -18,7 +18,7 @@ req_mcq = 15
 req_multi = 3
 req_blank = 2
 
-mcp = FastMCP(name="Making_Q_and_A_Form", host="127.0.0.1", port=8001)
+mcp = MCPServer(name="Making_Q_and_A_Form")
 
 tool_logger = logging.getLogger("mcp_tools")
 tool_logger.setLevel(logging.INFO)
@@ -100,9 +100,23 @@ def Reads_notes() -> str:
 def check_remaining() -> dict:
     data = load()
     counts = {"mcq": 0, "multi_choice": 0, "fill_in_blank": 0}
-    counts["mcq"] = max(0, req_mcq - data["mcq"])
-    counts["multi_choice"] = max(0, req_multi - data["multi_choice"])
+    counts["single correct mcq"] = max(0, req_mcq - data["mcq"])
+    counts["multi correct mcq"] = max(0, req_multi - data["multi_choice"])
     counts["fill_in_blank"] = max(0, req_blank - data["fill_in_blank"])
+    return counts
+
+
+@mcp.tool(
+    name="count_generated",
+    description="Counts both past and present questions, unless deleted.",
+)
+@log_tool_call
+def count_generated() -> dict:
+    data = load()
+    counts = {"mcq": 0, "multi_choice": 0, "fill_in_blank": 0}
+    counts["single correct mcq"] = max(0, data["mcq"])
+    counts["multi correct mcq"] = max(0, data["multi_choice"])
+    counts["fill_in_blank"] = max(0, data["fill_in_blank"])
     return counts
 
 
@@ -289,5 +303,19 @@ def add_blank(
     return "Fill-in Blank added successfully"
 
 
+@mcp.tool(
+    name="retreive_question",
+    description="Retreives saved question that is made now or in past. It may not have access to question that are deleted.",
+)
+@log_tool_call
+def retreive_question(index:int):
+    data = load()
+    if index < 0:
+        return "Invalid negative index"
+    if index < len(data["data"]):
+        return data["data"][index]
+    else:
+        return "Index out of range"
+
 if __name__ == "__main__":
-    mcp.run(transport="sse")
+    mcp.run(transport="sse", host="127.0.0.1", port=8001)
