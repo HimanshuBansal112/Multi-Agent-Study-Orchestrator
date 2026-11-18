@@ -4,6 +4,9 @@ import json
 import logging
 import os
 import re
+import shutil
+import subprocess
+import sys
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
@@ -357,7 +360,10 @@ def insert_relative_to_content(
 
 
 if __name__ == "__main__":
+    if os.path.exists(pdf_path):
+        shutil.rmtree(pdf_path)
     os.makedirs(pdf_path, exist_ok=True)
+    subprocess.run([sys.executable, "split_pdf.py"])
     format_html = """<!DOCTYPE html>
 <html lang="en">
 <head>

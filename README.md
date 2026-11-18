@@ -30,8 +30,23 @@ A multi-agent study orchestration platform built with LangGraph, FastAPI, and a 
 - **Frontend:** HTML, CSS, JavaScript
 
 ---
+## Setup
 
-## Setup & Execution
+### 1. Install Python
+
+### 2. Install uv
+
+```powershell
+pip install uv
+```
+
+### 3. Install requirements
+
+```powershell
+uv pip install -r requirements.txt
+```
+
+## Execution
 
 ### 1. Run the Backend Server
 
