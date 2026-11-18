@@ -40,7 +40,14 @@ A multi-agent study orchestration platform built with LangGraph, FastAPI, and a 
 pip install uv
 ```
 
-### 3. Install requirements
+### 3. Initialize uv
+
+```powershell
+uv init .
+uv venv
+```
+
+### 4. Install requirements
 
 ```powershell
 uv pip install -r requirements.txt
