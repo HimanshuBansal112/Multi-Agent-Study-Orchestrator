@@ -30,6 +30,9 @@ A multi-agent study orchestration platform built with LangGraph, FastAPI, and a 
 - **Frontend:** HTML, CSS, JavaScript
 
 ---
+
+**Note:** Run all commands mentioned in the Setup and Execution sections from the project's root directory.
+
 ## Setup
 
 ### 1. Install Python
