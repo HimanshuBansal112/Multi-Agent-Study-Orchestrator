@@ -58,7 +58,12 @@ uv pip install -r requirements.txt
 
 ## Execution
 
-### 1. Run the Backend Server
+### 1. Place the Study Material and keys
+
+- Rename your study material PDF to `input.pdf` and place it in `DataBase/lecture notes/`.
+- Open `DataBase/.env` in a text editor and add your API keys to the existing `GOOGLE_API_KEY` and `OPENROUTER_API_KEY` fields. Save the file before proceeding.
+
+### 2. Run the Backend Server
 
 Launch the FastAPI application from the project root:
 
@@ -74,7 +79,7 @@ uv run client.py
 
 The server will start at `http://127.0.0.1:8080`.
 
-### 2. Open the Web Interfaces
+### 3. Open the Web Interfaces
 
 - **Chat Workspace:** http://127.0.0.1:8080/frontend/index.html
 - **Quiz Workspace:** http://127.0.0.1:8080/frontend/quiz.html
